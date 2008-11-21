@@ -50,7 +50,7 @@ class Line(object):
         self._max = max
         self._types = types
 
-        # None type means use last type so set last type to something valid
+        # None type means use last type so set next type to something valid
         self._previous = random.choice([t for t in self._types])
 
     def __len__(self):
@@ -101,7 +101,7 @@ class Plane(object):
     def __iter__(self):
         for x, line in enumerate(self._lines):
             for y, piece in enumerate(line):
-                yield Coord(x, y), piece
+                yield piece, Coord(x, y)
 
     def add(self):
         random.choice(self._lines).add()
@@ -155,10 +155,12 @@ class Board(object):
                                  | (0,0) X (1,0) |
                                  +XXXXXXXXXXXXXXX+
     """
+    # TODO: Rename self._planes to something less confusing
+    # TODO: Consolidate variables
     def __init__(self, player_x, player_y, length_x, length_y, num_players, types):
-        self._players = []
-        self._player_positions = []
-        self._player_directions = []
+        self._players = [Player(types[0])]
+        self._player_positions = [Coord(0, 0)]
+        self._player_directions = [LEFT]
 
         self._player_max = Coord(player_x, player_y)
         self._player_origin_offset = Coord(length_x, length_y)
@@ -174,7 +176,7 @@ class Board(object):
             DOWN: Plane(player_x, length_y, types),
         }
 
-        self._next = random.choice(types)
+        self._next = random.choice(self._planes.values())
 
     def _left_offset(self, internal_position):
         return internal_position.transpose() + Coord(0, self._length_y)
@@ -201,20 +203,20 @@ class Board(object):
         return sum(len(plane) for plane in self._planes)
 
     def __iter__(self):
-        for int_pos, direction, player in zip(self._player_positions,
-                                        self._player_directions,
-                                        self._players):
+        for player, int_pos, direction in zip(self._players,
+                                              self._player_positions,
+                                              self._player_directions):
             ext_pos = int_pos + self._player_origin_offset
-            yield ext_pos, direction, player
+            yield player, ext_pos, direction
 
         for direction in self._planes:
-            for int_pos, piece in self._planes[direction]:
+            for piece, int_pos in self._planes[direction]:
                 ext_pos = self.offset(direction, int_pos)
-                yield ext_pos, direction, piece
+                yield piece, ext_pos, direction
 
     def add(self):
         self._next.add()
-        self._next = random.choice([type for type in self._types if type != self._next])
+        self._next = random.choice([plane for plane in self._planes.values() if plane != self._next])
 
     def move(self, player_num, direction):
         try:
@@ -250,82 +252,53 @@ class Board(object):
 
 
 class Game(object):
-    def __init__(self, lines_per_plane, width, height):
-        self.width = width
-        self.height = height
-        self.horizontal = self.width / 2
-        self.vertical = self.height / 2
-        self._board = Plane.as_board(lines_per_plane, self.horizontal, self.vertical)
-        self._player = Player(Coord(self.horizontal, self.vertical))
+    def __init__(self):
         self.score = 0
+        self._board = Board(4, 4,
+                            6, 4,
+                            1, PIECE_TYPES)
 
-    def attack(self):
-        self._board.attack()
+    def __iter__(self):
+        return iter(self._board)
+
+    def move(self, *args, **kwargs):
+        self._board(*args, **kwargs)
 
 
 class Marathon(Game):
     small_bonus = 5000
     large_bonus = 10000
 
+
     def __init__(self, *args, **kwargs):
         Game.__init__(self, *args, **kwargs)
         self.level = 1
         self.clears = 0
         self.quota = 0
-        self._set_quota()
-        self._set_timeleft()
+        self._update_quota()
+        self._next_piece = self._delay
 
-    def _set_quota(self):
+    def attack(self):
+        pieces = self._board.attack()
+        self.score += pieces * 100
+        self.quota -= pieces
+
+        if self.quota <= 0:
+            self._update_quota(self)
+
+    def update(self):
+        if self._next_piece <= 0:
+            try:
+                self._board.add()
+            except TooManyPieces:
+                raise GameOver
+            self._next_piece = self._delay
+        else:
+            self._next_piece -= 1
+
+    @property
+    def _delay(self):
+        return 20 - self.level
+
+    def _update_quota(self):
         self.quota += self.level * 10
-
-    def _set_timeleft(self):
-        self._timeleft = 100 - self.level * 10
-
-
-'''
-class HighScore(object):
-    def __init__(self, file_name=os.path.expanduser('~/.lambdooz_score')):
-        self.file_name = file_name
-
-    def __getitem__(self, game_name):
-        self.load()
-        return self._data[game_name]
-
-    def _set_defaults(self):
-        self._data = {}
-        for game_name in GAME_TYPES:
-            self._data[game_name] = [['0', 'None'] for x in range(5)]
-
-    def _sort(self):
-        for game_name in GAME_TYPES:
-            self._sort_game(game_name)
-
-    def _sort_game(self, game_name):
-        def first_element(list):
-            return list[0]
-        self._data[game_name].sort(key=first_element, reverse=True)
-
-    def load(self):
-        """Most methods should call this. The slight performance hit is worth
-        the more accurate data.
-        """
-        try:
-            with open(self.file_name, 'r') as file:
-                self._data = yaml.safe_load(file)
-            self._sort()
-        except Exception:
-            if not hasattr(self, '_data'):
-                self._set_defaults()
-                self._sort()
-
-    def save(self):
-        with open(self.file_name, 'w') as file:
-            yaml.safe_dump(self._data, file)
-
-    def append(self, game_name, score):
-        self.load()
-        self._data[game_name].append(score)
-        self._sort_game(game_name)
-        self._data[game_name].pop()
-        self.save()
-'''

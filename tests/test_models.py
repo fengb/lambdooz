@@ -77,12 +77,12 @@ class TestPlane(object):
         plane = models.Plane(1, self.length, self.types)
         for last_y in range(self.length):
             plane.add()
-            coords = set(coord for (coord, piece) in plane)
+            coords = set(coord for (piece, coord) in plane)
             for y in range(last_y + 1):
                 assert Coord(0, y) in coords
 
     def test_add_to_all_x(self):
-        x_values = set(coord.x for (coord, piece) in self.plane)
+        x_values = set(coord.x for (piece, coord) in self.plane)
         for x in range(self.width):
             assert x in x_values
 
@@ -147,9 +147,10 @@ class TestBoard(object):
         self.length_x = 2
         self.length_y = 2
         self.num_players = 1
+        self.types = ['arthur', 'lancelot', 'galahad']
         self.board = models.Board(self.player_x, self.player_y,
                                   self.length_x, self.length_y,
-                                  self.num_players, ['i dun care'])
+                                  self.num_players, self.types)
 
     def test_offset_left(self):
         assert self.board.offset(models.LEFT, Coord(0, 0)) == Coord(0, 2)
