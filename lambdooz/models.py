@@ -19,7 +19,7 @@ class GameOver(Exception):
     """Game over, man! Game over!"""
 
 
-PIECE_TYPES = ['norm1', 'norm2', 'norm3', 'norm4']
+PIECE_TYPES = [0, 1, 2, 3]
 
 
 class Piece(object):
@@ -66,7 +66,7 @@ class Line(object):
         # Chooses last type if random returns None
         self._previous = random.choice(self._types) or self._previous
         piece = Piece(self._previous)
-        self._pieces.append(piece)
+        self._pieces.insert(0, piece)
         return piece
 
     def intersect(self, player):
@@ -107,7 +107,7 @@ class Plane(object):
         random.choice(self._lines).add()
 
     def intersect(self, num, player):
-        return self._lines[num].intersect(player)
+        return self._lines[int(num)].intersect(player)
 
 
 class Board(object):
@@ -220,14 +220,15 @@ class Board(object):
 
     def move(self, player_num, direction):
         try:
-            position = self._player_positions[num]
-            direction = self._player_directions[num]
+            self._player_directions[player_num] = direction
+            position = self._player_positions[player_num]
         except IndexError:
             raise PlayerNotFound(num)
         target = position + direction
 
         if self.inside_player_area(target):
-            self._positions[number] = target
+            print target
+            self._player_positions[player_num] = target
             return True
         else:
             return False
@@ -246,9 +247,9 @@ class Board(object):
 
         # Direction should have either X or Y but not both
         if direction.x:
-            return plane.intersect(position.x, player)
-        else:
             return plane.intersect(position.y, player)
+        else:
+            return plane.intersect(position.x, player)
 
 
 class Game(object):
@@ -262,7 +263,7 @@ class Game(object):
         return iter(self._board)
 
     def move(self, *args, **kwargs):
-        self._board(*args, **kwargs)
+        self._board.move(*args, **kwargs)
 
 
 class Marathon(Game):
@@ -270,21 +271,24 @@ class Marathon(Game):
     large_bonus = 10000
 
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, delay, increase, *args, **kwargs):
         Game.__init__(self, *args, **kwargs)
         self.level = 1
         self.clears = 0
         self.quota = 0
         self._update_quota()
-        self._next_piece = self._delay
 
-    def attack(self):
-        pieces = self._board.attack()
+        self._base_delay = delay
+        self._increase = increase
+        self._next_piece = self._delay()
+
+    def attack(self, *args, **kwargs):
+        pieces = self._board.attack(*args, **kwargs)
         self.score += pieces * 100
         self.quota -= pieces
 
         if self.quota <= 0:
-            self._update_quota(self)
+            self._update_quota()
 
     def update(self):
         if self._next_piece <= 0:
@@ -292,13 +296,12 @@ class Marathon(Game):
                 self._board.add()
             except TooManyPieces:
                 raise GameOver
-            self._next_piece = self._delay
+            self._next_piece = self._delay()
         else:
             self._next_piece -= 1
 
-    @property
     def _delay(self):
-        return 20 - self.level
+        return self._base_delay - self.level * self._increase
 
     def _update_quota(self):
         self.quota += self.level * 10
