@@ -4,14 +4,6 @@ import random
 import itertools
 import os
 
-from .common import Coord
-
-
-LEFT = Coord(-1, 0)
-RIGHT = Coord(1, 0)
-UP = Coord(0, 1)
-DOWN = Coord(0, -1)
-
 
 class TooManyPieces(Exception):
     """Too many pieces have been added."""
@@ -19,7 +11,65 @@ class GameOver(Exception):
     """Game over, man! Game over!"""
 
 
-PIECE_TYPES = [0, 1, 2, 3]
+class Coord(object):
+    def __init__(self, x, y):
+        self._comp = complex(x, y)
+
+    def __repr__(self):
+        return 'Coord(%d, %d)' % (self._comp.real, self._comp.imag)
+
+    def __str__(self):
+        return '(%d, %d)' % (self._comp.real, self._comp.imag)
+
+    def __iter__(self):
+        yield self.x
+        yield self.y
+
+    def __hash__(self):
+        return hash(self._comp)
+
+    def __eq__(self, other):
+        try:
+            return self._comp == other._comp
+        except Exception:
+            return False
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __add__(self, other):
+        result = self._comp + other._comp
+        return Coord(result.real, result.imag)
+
+    def __sub__(self, other):
+        return self + -other
+
+    def __mul__(self, other):
+        result = self._comp * other
+        return Coord(result.real, result.imag)
+
+    def __neg__(self):
+        return self * -1
+
+    @property
+    def x(self):
+        return self._comp.real
+
+    @property
+    def y(self):
+        return self._comp.imag
+
+    def transpose(self):
+        return Coord(self._comp.imag, self._comp.real)
+
+    def reflect_x(self):
+        return Coord(-self._comp.real, self._comp.imag)
+
+    def reflect_y(self):
+        return Coord(self._comp.real, -self._comp.imag)
+
+
+PIECE_TYPES = ['0', '1', '2', '3']
 
 
 class Piece(object):
@@ -160,7 +210,7 @@ class Board(object):
     def __init__(self, player_x, player_y, length_x, length_y, num_players, types):
         self._players = [Player(types[0])]
         self._player_positions = [Coord(0, 0)]
-        self._player_directions = [LEFT]
+        self._player_directions = ['left']
 
         self._player_max = Coord(player_x, player_y)
         self._player_origin_offset = Coord(length_x, length_y)
@@ -170,10 +220,17 @@ class Board(object):
         self._player_y = player_y
 
         self._planes = {
-            LEFT: Plane(player_y, length_x, types),
-            RIGHT: Plane(player_y, length_x, types),
-            UP: Plane(player_x, length_y, types),
-            DOWN: Plane(player_x, length_y, types),
+            'left': Plane(player_y, length_x, types),
+            'right': Plane(player_y, length_x, types),
+            'up': Plane(player_x, length_y, types),
+            'down': Plane(player_x, length_y, types),
+        }
+
+        self._flip = {
+            'left': 'right',
+            'right': 'left',
+            'up': 'down',
+            'down': 'up',
         }
 
         self._next = random.choice(self._planes.values())
@@ -192,27 +249,39 @@ class Board(object):
 
     def offset(self, direction, internal_position):
         offset_funcs = {
-            LEFT: self._left_offset,
-            RIGHT: self._right_offset,
-            UP: self._up_offset,
-            DOWN: self._down_offset,
+            'left': self._left_offset,
+            'right': self._right_offset,
+            'up': self._up_offset,
+            'down': self._down_offset,
         }
         return offset_funcs[direction](internal_position)
 
     def __len__(self):
-        return sum(len(plane) for plane in self._planes)
+        return sum(len(plane) for plane in self._planes.values())
 
     def __iter__(self):
         for player, int_pos, direction in zip(self._players,
                                               self._player_positions,
                                               self._player_directions):
             ext_pos = int_pos + self._player_origin_offset
-            yield player, ext_pos, direction
+            yield {
+                'id': id(player),
+                'player': True,
+                'type': str(player.type),
+                'position': tuple(ext_pos),
+                'direction': direction,
+            }
 
         for direction in self._planes:
             for piece, int_pos in self._planes[direction]:
                 ext_pos = self.offset(direction, int_pos)
-                yield piece, ext_pos, direction
+                yield {
+                    'id': id(piece),
+                    'player': False,
+                    'type': str(piece.type),
+                    'position': tuple(ext_pos),
+                    'direction': direction,
+                }
 
     def add(self):
         self._next.add()
@@ -224,10 +293,14 @@ class Board(object):
             position = self._player_positions[player_num]
         except IndexError:
             raise PlayerNotFound(num)
-        target = position + direction
+        target = position + {
+            'left': Coord(-1, 0),
+            'right': Coord(1, 0),
+            'up': Coord(0, 1),
+            'down': Coord(0, -1),
+        }[direction]
 
         if self.inside_player_area(target):
-            print target
             self._player_positions[player_num] = target
             return True
         else:
@@ -243,10 +316,9 @@ class Board(object):
         direction = self._player_directions[num]
 
         plane = self._planes[direction]
-        self._player_directions[num] *= -1
+        self._player_directions[num] = self._flip[direction]
 
-        # Direction should have either X or Y but not both
-        if direction.x:
+        if direction in ('left', 'right'):
             return plane.intersect(position.y, player)
         else:
             return plane.intersect(position.x, player)

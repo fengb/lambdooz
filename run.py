@@ -11,7 +11,7 @@ screen = pygame.display.set_mode((800, 600))
 clk = pygame.time.Clock()
 fps = 60
 model = lambdooz.models.Marathon(2 * fps, 10)
-view = lambdooz.views.Game(screen, model)
+view = lambdooz.views.Game(screen)
 
 while True:
     clk.tick(fps)
@@ -24,15 +24,15 @@ while True:
             if event.key == pygame.K_ESCAPE:
                 sys.exit()
             elif event.key == pygame.K_LEFT:
-                model.move(0, lambdooz.models.LEFT)
+                model.move(0, 'left')
             elif event.key == pygame.K_RIGHT:
-                model.move(0, lambdooz.models.RIGHT)
+                model.move(0, 'right')
             elif event.key == pygame.K_UP:
-                model.move(0, lambdooz.models.UP)
+                model.move(0, 'up')
             elif event.key == pygame.K_DOWN:
-                model.move(0, lambdooz.models.DOWN)
+                model.move(0, 'down')
             elif event.key == pygame.K_SPACE:
                 model.attack(0)
 
-    view.update()
+    view.update(model)
     pygame.display.flip()

@@ -1,8 +1,53 @@
 from nose.tools import raises
 
-from lambdooz.common import Coord
-
 from lambdooz import models
+
+class TestCoord(object):
+    def setup(self):
+        self.x = 123
+        self.y = 456
+        self.coord = models.Coord(self.x, self.y)
+
+    def test_accessors(self):
+        assert self.coord.x == self.x
+        assert self.coord.y == self.y
+
+    def test_equality(self):
+        assert self.coord == models.Coord(self.x, self.y)
+        assert hash(self.coord) == hash(models.Coord(self.x, self.y))
+
+    def test_inequality(self):
+        assert self.coord != 0
+        assert self.coord != (self.x, self.y)
+        assert self.coord != models.Coord(self.x + 1, self.y)
+
+    def test_add_subtract(self):
+        x = 518
+        y = -297
+        coord = models.Coord(x, y)
+
+        assert self.coord + coord == models.Coord(self.x + x, self.y + y)
+        assert self.coord - coord == models.Coord(self.x - x, self.y - y)
+        assert coord - self.coord == models.Coord(x - self.x, y - self.y)
+
+    def test_multiply(self):
+        s = 1.2
+
+        assert self.coord * s == models.Coord(self.x * s, self.y * s)
+
+    def test_negate(self):
+        assert -self.coord == models.Coord(-self.x, -self.y)
+
+    def test_transpose(self):
+        assert self.coord.transpose() == models.Coord(self.y, self.x)
+
+    def test_reflection(self):
+        assert self.coord.reflect_x() == models.Coord(-self.x, self.y)
+        assert self.coord.reflect_y() == models.Coord(self.x, -self.y)
+
+    def test_tuple(self):
+        assert tuple(self.coord) == (self.x, self.y)
+
 
 class TestPlayer(object):
     def setup(self):
@@ -79,7 +124,7 @@ class TestPlane(object):
             plane.add()
             coords = set(coord for (piece, coord) in plane)
             for y in range(last_y + 1):
-                assert Coord(0, y) in coords
+                assert models.Coord(0, y) in coords
 
     def test_add_to_all_x(self):
         x_values = set(coord.x for (piece, coord) in self.plane)
@@ -153,25 +198,25 @@ class TestBoard(object):
                                   self.num_players, self.types)
 
     def test_offset_left(self):
-        assert self.board.offset(models.LEFT, Coord(0, 0)) == Coord(0, 2)
-        assert self.board.offset(models.LEFT, Coord(1, 0)) == Coord(0, 3)
-        assert self.board.offset(models.LEFT, Coord(0, 1)) == Coord(1, 2)
-        assert self.board.offset(models.LEFT, Coord(1, 1)) == Coord(1, 3)
+        assert self.board.offset('left', models.Coord(0, 0)) == models.Coord(0, 2)
+        assert self.board.offset('left', models.Coord(1, 0)) == models.Coord(0, 3)
+        assert self.board.offset('left', models.Coord(0, 1)) == models.Coord(1, 2)
+        assert self.board.offset('left', models.Coord(1, 1)) == models.Coord(1, 3)
 
     def test_offset_right(self):
-        assert self.board.offset(models.RIGHT, Coord(0, 0)) == Coord(5, 2)
-        assert self.board.offset(models.RIGHT, Coord(1, 0)) == Coord(5, 3)
-        assert self.board.offset(models.RIGHT, Coord(0, 1)) == Coord(4, 2)
-        assert self.board.offset(models.RIGHT, Coord(1, 1)) == Coord(4, 3)
+        assert self.board.offset('right', models.Coord(0, 0)) == models.Coord(5, 2)
+        assert self.board.offset('right', models.Coord(1, 0)) == models.Coord(5, 3)
+        assert self.board.offset('right', models.Coord(0, 1)) == models.Coord(4, 2)
+        assert self.board.offset('right', models.Coord(1, 1)) == models.Coord(4, 3)
 
     def test_offset_up(self):
-        assert self.board.offset(models.UP, Coord(0, 0)) == Coord(2, 5)
-        assert self.board.offset(models.UP, Coord(1, 0)) == Coord(3, 5)
-        assert self.board.offset(models.UP, Coord(0, 1)) == Coord(2, 4)
-        assert self.board.offset(models.UP, Coord(1, 1)) == Coord(3, 4)
+        assert self.board.offset('up', models.Coord(0, 0)) == models.Coord(2, 5)
+        assert self.board.offset('up', models.Coord(1, 0)) == models.Coord(3, 5)
+        assert self.board.offset('up', models.Coord(0, 1)) == models.Coord(2, 4)
+        assert self.board.offset('up', models.Coord(1, 1)) == models.Coord(3, 4)
 
     def test_offset_down(self):
-        assert self.board.offset(models.DOWN, Coord(0, 0)) == Coord(2, 0)
-        assert self.board.offset(models.DOWN, Coord(1, 0)) == Coord(3, 0)
-        assert self.board.offset(models.DOWN, Coord(0, 1)) == Coord(2, 1)
-        assert self.board.offset(models.DOWN, Coord(1, 1)) == Coord(3, 1)
+        assert self.board.offset('down', models.Coord(0, 0)) == models.Coord(2, 0)
+        assert self.board.offset('down', models.Coord(1, 0)) == models.Coord(3, 0)
+        assert self.board.offset('down', models.Coord(0, 1)) == models.Coord(2, 1)
+        assert self.board.offset('down', models.Coord(1, 1)) == models.Coord(3, 1)
