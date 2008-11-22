@@ -32,7 +32,7 @@ class Game(object):
 
     def update(self, model):
         self.screen.blit(self.background, (0, 0))
-        for piece in model:
+        for piece in model['pieces']:
             image = self.piece_images[piece['player'], piece['type'], piece['direction']]
             model_position = piece['position']
             position = (model_position[0] * 50, (11 - model_position[1]) * 50)

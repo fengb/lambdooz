@@ -34,5 +34,5 @@ while True:
             elif event.key == pygame.K_SPACE:
                 model.attack(0)
 
-    view.update(model)
+    view.update(model.raw())
     pygame.display.flip()

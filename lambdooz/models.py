@@ -234,6 +234,7 @@ class Board(object):
         }
 
         self._next = random.choice(self._planes.values())
+        self._flat = None
 
     def _left_offset(self, internal_position):
         return internal_position.transpose() + Coord(0, self._length_y)
@@ -264,24 +265,12 @@ class Board(object):
                                               self._player_positions,
                                               self._player_directions):
             ext_pos = int_pos + self._player_origin_offset
-            yield {
-                'id': id(player),
-                'player': True,
-                'type': str(player.type),
-                'position': tuple(ext_pos),
-                'direction': direction,
-            }
+            yield player, ext_pos, direction
 
         for direction in self._planes:
             for piece, int_pos in self._planes[direction]:
                 ext_pos = self.offset(direction, int_pos)
-                yield {
-                    'id': id(piece),
-                    'player': False,
-                    'type': str(piece.type),
-                    'position': tuple(ext_pos),
-                    'direction': direction,
-                }
+                yield piece, ext_pos, direction
 
     def add(self):
         self._next.add()
@@ -331,8 +320,17 @@ class Game(object):
                             6, 4,
                             1, PIECE_TYPES)
 
-    def __iter__(self):
-        return iter(self._board)
+    def raw(self):
+        raw = {'pieces': []}
+        for piece, position, direction in self._board:
+            raw['pieces'].append({
+                'id': id(piece),
+                'player': isinstance(piece, Player),
+                'type': str(piece.type),
+                'position': tuple(position),
+                'direction': direction,
+            })
+        return raw
 
     def move(self, *args, **kwargs):
         self._board.move(*args, **kwargs)
