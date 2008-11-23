@@ -321,7 +321,10 @@ class Game(object):
                             1, PIECE_TYPES)
 
     def raw(self):
-        raw = {'pieces': []}
+        raw = {
+            'pieces': [],
+            'score': self.score,
+        }
         for piece, position, direction in self._board:
             raw['pieces'].append({
                 'id': id(piece),
@@ -351,6 +354,12 @@ class Marathon(Game):
         self._base_delay = delay
         self._increase = increase
         self._next_piece = self._delay()
+
+    def raw(self):
+        raw = Game.raw(self)
+        raw['quota'] = self.quota
+        raw['level'] = self.level
+        return raw
 
     def attack(self, *args, **kwargs):
         pieces = self._board.attack(*args, **kwargs)
