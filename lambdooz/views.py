@@ -19,21 +19,22 @@ def load_all(file_name):
 
 
 def render_text(text):
-    font = pygame.font.SysFont('Courier New', 50, True)
+    font = pygame.font.Font('data/ocr_a.ttf', 40)
     return font.render(text, 1, (255, 255, 255))
 
 
 class Game(object):
-    def __init__(self, surface):
+    def __init__(self, surface, model):
         self.surface = surface
+        self.model = model
 
         self.background = load('data/background.png')
-        self.piece_images = {}
-        for type in models.PIECE_TYPES:
-            for direction, image in load_all('data/player%s.png' % type).items():
-                self.piece_images[True, type, direction] = image
-            for direction, image in load_all('data/piece%s.png' % type).items():
-                self.piece_images[False, type, direction] = image
+        self._piece_images = {}
+
+    def piece(self, name, direction):
+        if not name in self._piece_images:
+            self._piece_images[name] = load_all('data/%s.png' % name)
+        return self._piece_images[name][direction]
 
     def draw_upper_left(self, surface):
         x, y = self.surface.get_rect().topleft
@@ -54,14 +55,18 @@ class Game(object):
         x, y = self.surface.get_rect().bottomright
         self.surface.blit(surface, (x - w, y - h))
 
-    def update(self, model):
-        self.surface.blit(self.background, (0, 0))
-        for piece in model['pieces']:
-            image = self.piece_images[piece['player'], piece['type'], piece['direction']]
-            model_position = piece['position']
-            position = (model_position[0] * 50, (11 - model_position[1]) * 50)
+    def draw_pieces(self, pieces):
+        for id, type, position, direction in pieces:
+            image = self.piece(type, direction)
+            position = (position[0] * 50, (11 - position[1]) * 50)
             self.surface.blit(image, position)
 
-        self.draw_upper_left(render_text(str(model['score'])))
-        self.draw_upper_right(render_text(str(model['quota'])))
-        self.draw_lower_right(render_text(str(model['level'])))
+
+class Marathon(Game):
+    def update(self):
+        self.surface.blit(self.background, (0, 0))
+
+        self.draw_pieces(self.model.pieces)
+        self.draw_upper_left(render_text('%010d' % self.model.score))
+        self.draw_upper_right(render_text(str(self.model.quota)))
+        self.draw_lower_right(render_text(str(self.model.level)))

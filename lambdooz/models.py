@@ -77,11 +77,17 @@ class Piece(object):
     def __init__(self, type):
         self.type = type
 
+    def __str__(self):
+        return 'piece%s' % self.type
+
 
 class Player(Piece):
     """Special type of Piece."""
     def __init__(self, type):
         self.type = type
+
+    def __str__(self):
+        return 'player%s' % self.type
 
     def attack(self, piece):
         if self.type == piece.type:
@@ -319,24 +325,16 @@ class Game(object):
         self._board = Board(4, 4,
                             6, 4,
                             1, PIECE_TYPES)
-
-    def raw(self):
-        raw = {
-            'pieces': [],
-            'score': self.score,
-        }
-        for piece, position, direction in self._board:
-            raw['pieces'].append({
-                'id': id(piece),
-                'player': isinstance(piece, Player),
-                'type': str(piece.type),
-                'position': tuple(position),
-                'direction': direction,
-            })
-        return raw
+        self._pieces = None
 
     def move(self, *args, **kwargs):
         self._board.move(*args, **kwargs)
+
+    @property
+    def pieces(self):
+        """Iterate (id, type, position, direction) for each piece."""
+        for piece, position, direction in self._board:
+            yield id(piece), str(piece), tuple(position), str(direction)
 
 
 class Marathon(Game):
@@ -344,7 +342,7 @@ class Marathon(Game):
     large_bonus = 10000
 
 
-    def __init__(self, delay, increase, *args, **kwargs):
+    def __init__(self, delay, acceleration, *args, **kwargs):
         Game.__init__(self, *args, **kwargs)
         self.level = 1
         self.clears = 0
@@ -352,14 +350,8 @@ class Marathon(Game):
         self._update_quota()
 
         self._base_delay = delay
-        self._increase = increase
+        self._acceleration = acceleration
         self._next_piece = self._delay()
-
-    def raw(self):
-        raw = Game.raw(self)
-        raw['quota'] = self.quota
-        raw['level'] = self.level
-        return raw
 
     def attack(self, *args, **kwargs):
         pieces = self._board.attack(*args, **kwargs)
@@ -368,6 +360,7 @@ class Marathon(Game):
 
         if self.quota <= 0:
             self._update_quota()
+            self.level += 1
 
     def update(self):
         if self._next_piece <= 0:
@@ -380,7 +373,7 @@ class Marathon(Game):
             self._next_piece -= 1
 
     def _delay(self):
-        return self._base_delay - self.level * self._increase
+        return self._base_delay - self.level * self._acceleration
 
     def _update_quota(self):
         self.quota += self.level * 10
