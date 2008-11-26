@@ -338,18 +338,14 @@ class Game(object):
 
 
 class Marathon(Game):
-    small_bonus = 5000
-    large_bonus = 10000
-
-
-    def __init__(self, delay, acceleration, *args, **kwargs):
+    def __init__(self, sync, acceleration, *args, **kwargs):
         Game.__init__(self, *args, **kwargs)
         self.level = 1
         self.clears = 0
         self.quota = 0
         self._update_quota()
 
-        self._base_delay = delay
+        self._sync = sync
         self._acceleration = acceleration
         self._next_piece = self._delay()
 
@@ -373,7 +369,28 @@ class Marathon(Game):
             self._next_piece -= 1
 
     def _delay(self):
-        return self._base_delay - self.level * self._acceleration
+        return self._sync - self.level * self._acceleration
 
     def _update_quota(self):
         self.quota += self.level * 10
+
+
+class Timed(Game):
+    def __init__(self, sync, time_left, *args, **kwargs):
+        Game.__init__(self, *args, **kwargs)
+        self.time_left = time_left
+
+        self._sync = sync
+        self._next_tick = self._sync
+
+    def attack(self, *args, **kwargs):
+        pieces = self._board.attack(*args, **kwargs)
+        self.score += pieces * 100
+
+    def update(self):
+        if self._next_tick <= 0:
+            self.time_left -= 1
+            if self.time_left <= 0:
+                raise GameOver
+        else:
+            self._next_tick -= 1
