@@ -125,6 +125,10 @@ class Line(object):
         self._pieces.insert(0, piece)
         return piece
 
+    def fill(self):
+        while len(self) < self._max:
+            self.add()
+
     def intersect(self, player):
         removed = 0
         while self._pieces and player.attack(self._pieces[-1]):
@@ -158,6 +162,10 @@ class Plane(object):
         for x, line in enumerate(self._lines):
             for y, piece in enumerate(line):
                 yield piece, Coord(x, y)
+
+    def fill(self):
+        for line in self._lines:
+            line.fill()
 
     def add(self):
         random.choice(self._lines).add()
@@ -282,6 +290,10 @@ class Board(object):
         self._next.add()
         self._next = random.choice([plane for plane in self._planes.values() if plane != self._next])
 
+    def fill(self):
+        for plane in self._planes.values():
+            plane.fill()
+
     def move(self, player_num, direction):
         try:
             self._player_directions[player_num] = direction
@@ -380,6 +392,7 @@ class Timed(Game):
         Game.__init__(self, *args, **kwargs)
         self.time_left = time_left
 
+        self._board.fill()
         self._sync = sync
         self._next_tick = self._sync
 
@@ -389,6 +402,7 @@ class Timed(Game):
 
     def update(self):
         if self._next_tick <= 0:
+            self._next_tick = self._sync
             self.time_left -= 1
             if self.time_left <= 0:
                 raise GameOver

@@ -2,6 +2,18 @@ import functools
 import pygame
 
 
+class Game(object):
+    def __init__(self, model):
+        self.controllers = [Keyboard(model)]
+
+    def update(self):
+        for controller in self.controllers:
+            controller.update()
+
+        # Eat all the rest of the events
+        pygame.event.get()
+
+
 class Keyboard(object):
     def __init__(self, model):
         self._actions = {
