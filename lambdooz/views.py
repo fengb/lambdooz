@@ -1,3 +1,5 @@
+import os
+
 import pygame
 
 
@@ -8,6 +10,14 @@ class Image(object):
     def __init__(self, file_name):
         self.raw = pygame.image.load(file_name).convert_alpha()
         self._rotations = {}
+
+    @classmethod
+    def from_directory(cls, dir_name):
+        images = {}
+        for file_name in os.listdir(dir_name):
+            if file_name.endswith('.png'):
+                images[file_name.rstrip('.png')] = cls('%s/%s' % (dir_name, file_name))
+        return images
 
     def rotate(self, degrees):
         if degrees not in self._rotations:
@@ -36,7 +46,7 @@ class Game(object):
         self.surface = surface
         self.model = model
 
-        self._images = dict(name, Image('data/%s.png' % name) for name in model.images)
+        self._images = Image.from_directory('data')
         self._font = pygame.font.Font('data/ocr_a.ttf', 40)
 
     def render_text(self, text):
@@ -78,7 +88,7 @@ class Marathon(Game):
         self.draw_lower_right(self.render_text(self.model.level))
 
 
-class Marathon(Game):
+class Timed(Game):
     def update(self):
         self.surface.blit(self._images['background'].raw, (0, 0))
 
