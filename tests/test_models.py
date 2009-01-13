@@ -68,43 +68,59 @@ class TestPlayer(object):
 
 class TestLine(object):
     def setup_method(self, method):
-        self.types = ['arthur', 'lancelot', 'galahad']
-        self.max = 50
-        self.line = models.Line(self.max, self.types)
+        types = ['arthur', 'lancelot', 'galahad']
+        max = 50
+        self.special_type = 'bedivere'
+        self.test_types = [str(x) for x in range(max)]
+        self.line = models.Line(max, types)
 
-        for x in range(self.max):
-            self.line.add()
+    def test_fill(self):
+        self.line.fill()
+        assert len(self.line) == self.line.max
 
     def test_too_many_pieces_added(self):
+        self.line.fill()
         raises(models.TooManyPieces, 'self.line.add()')
 
     def test_only_add_listed_types(self):
+        self.line.fill()
         for piece in self.line:
-            assert piece.type in self.types
+            assert piece.type in self.line.types
 
-    def test_add_previous_on_none(self):
-        line = models.Line(self.max, self.types)
+    def test_add_new_types_to_front(self):
+        for type in self.test_types:
+            self.line.add(type)
 
-        type = 'bedivere'
-        line._previous = type
-        line._types = [None]
+        assert [piece.type for piece in self.line] == list(reversed(self.test_types))
 
-        for x in range(self.max):
+    def test_add_previous(self):
+        for type in self.test_types:
+            line = models.Line(max, [None])
+            line.add(type)
+            assert [piece.type for piece in line] == [type]
+
             line.add()
+            assert [piece.type for piece in line] == [type, type]
 
-        for piece in line:
-            assert piece.type == type
+    def test_add_piece_if_no_previous(self):
+        base_types = [None] * 100
+        for type in self.test_types:
+            line = models.Line(max, base_types + [type])
+            line.add()
+            assert [piece.type for piece in line] == [type]
 
     def test_intersect_returns_number_of_pieces_removed(self):
-        player = models.Player(self.types[0])
+        self.line.fill()
+        player = models.Player(self.line.types[0])
 
-        assert self.line.intersect(player) + len(self.line) == self.max
+        assert self.line.intersect(player) + len(self.line) == self.line.max
 
     def test_intersect_only_removes_matching(self):
-        player = models.Player('not in this picture')
+        self.line.fill()
+        player = models.Player(self.special_type)
 
         assert self.line.intersect(player) == 0
-        assert len(self.line) == self.max
+        assert len(self.line) == self.line.max
 
 
 class TestPlane(object):

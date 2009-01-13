@@ -103,11 +103,12 @@ class Line(object):
     """
     def __init__(self, max, types):
         self._pieces = []
-        self._max = max
-        self._types = types
+        self.max = max
+        self.types = types
+        self._good_types = [type for type in self.types if type]
 
         # None type means use last type so set next type to something valid
-        self._previous = random.choice([t for t in self._types])
+        self._previous = random.choice([t for t in self.types])
 
     def __len__(self):
         return len(self._pieces)
@@ -115,18 +116,22 @@ class Line(object):
     def __iter__(self):
         return iter(self._pieces)
 
-    def add(self):
-        if len(self) >= self._max:
+    def add(self, type=None):
+        if len(self) >= self.max:
             raise TooManyPieces
 
-        # Chooses last type if random returns None
-        self._previous = random.choice(self._types) or self._previous
-        piece = Piece(self._previous)
+        if not type:
+            # Try returning random type
+            # If random is false, return previous
+            # If previous is false, force true from random
+            type = random.choice(self.types) or self.previous or \
+                   random.choice(self._good_types)
+        piece = Piece(type)
         self._pieces.insert(0, piece)
         return piece
 
     def fill(self):
-        while len(self) < self._max:
+        while len(self) < self.max:
             self.add()
 
     def intersect(self, player):
@@ -135,6 +140,10 @@ class Line(object):
             self._pieces.pop()
             removed += 1
         return removed
+
+    @property
+    def previous(self):
+        return self._pieces[0].type if self else False
 
 
 class Plane(object):
