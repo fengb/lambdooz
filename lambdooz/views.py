@@ -2,6 +2,8 @@ import os
 
 import pygame
 
+from .mvc import observer
+
 
 from . import models
 
@@ -42,12 +44,15 @@ class Image(object):
 
 
 class Game(object):
-    def __init__(self, surface, model):
-        self.surface = surface
+    @observer
+    def __init__(self, model, surface):
         self.model = model
+        self.surface = surface
 
         self._images = Image.from_directory('data')
         self._font = pygame.font.Font('data/ocr_a.ttf', 40)
+
+        self.update()
 
     def render_text(self, text):
         return self._font.render(str(text), 1, (255, 255, 255))
@@ -76,6 +81,9 @@ class Game(object):
             image = getattr(self._images[type], direction)
             position = (position[0] * 50, (11 - position[1]) * 50)
             self.surface.blit(image, position)
+
+    def synchronize(self, duration):
+        pass
 
 
 class Marathon(Game):

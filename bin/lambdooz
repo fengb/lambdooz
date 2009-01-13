@@ -1,0 +1,23 @@
+#!/usr/bin/env python
+
+import pygame
+
+
+import lambdooz
+
+
+pygame.init()
+screen = pygame.display.set_mode((800, 600))
+
+clk = pygame.time.Clock()
+fps = 60
+model = lambdooz.models.Marathon(2000, 10)
+controller = lambdooz.controllers.Game(model)
+view = lambdooz.views.Marathon(model, screen)
+
+while True:
+    duration = clk.tick(fps)
+    model.synchronize(duration)
+    controller.synchronize(duration)
+    view.synchronize(duration)
+    pygame.display.flip()

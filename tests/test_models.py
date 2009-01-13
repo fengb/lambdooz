@@ -1,9 +1,9 @@
-from nose.tools import raises
+from py.test import raises
 
 from lambdooz import models
 
 class TestCoord(object):
-    def setup(self):
+    def setup_method(self, method):
         self.x = 123
         self.y = 456
         self.coord = models.Coord(self.x, self.y)
@@ -50,7 +50,7 @@ class TestCoord(object):
 
 
 class TestPlayer(object):
-    def setup(self):
+    def setup_method(self, method):
         self.type = 'test type'
         self.player = models.Player(self.type)
 
@@ -67,7 +67,7 @@ class TestPlayer(object):
 
 
 class TestLine(object):
-    def setup(self):
+    def setup_method(self, method):
         self.types = ['arthur', 'lancelot', 'galahad']
         self.max = 50
         self.line = models.Line(self.max, self.types)
@@ -75,9 +75,8 @@ class TestLine(object):
         for x in range(self.max):
             self.line.add()
 
-    @raises(models.TooManyPieces)
     def test_too_many_pieces_added(self):
-        self.line.add()
+        raises(models.TooManyPieces, 'self.line.add()')
 
     def test_only_add_listed_types(self):
         for piece in self.line:
@@ -109,7 +108,7 @@ class TestLine(object):
 
 
 class TestPlane(object):
-    def setup(self):
+    def setup_method(self, method):
         self.width = 5
         self.length = 50
         self.types = ['arthur', 'lancelot', 'galahad']
@@ -186,7 +185,7 @@ class TestBoard(object):
                                  | (0,0) X (1,0) |
                                  +XXXXXXXXXXXXXXX+
     """
-    def setup(self):
+    def setup_method(self, method):
         self.player_x = 2
         self.player_y = 2
         self.length_x = 2

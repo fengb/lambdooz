@@ -1,8 +1,8 @@
-from __future__ import with_statement
-
 import random
 import itertools
 import os
+
+from .mvc import mutator, observable
 
 
 class TooManyPieces(Exception):
@@ -332,6 +332,7 @@ class Board(object):
 
 
 class Game(object):
+    @observable
     def __init__(self):
         self.score = 0
         self._board = Board(4, 4,
@@ -339,6 +340,7 @@ class Game(object):
                             1, PIECE_TYPES)
         self._pieces = None
 
+    @mutator
     def move(self, *args, **kwargs):
         self._board.move(*args, **kwargs)
 
@@ -361,6 +363,7 @@ class Marathon(Game):
         self._acceleration = acceleration
         self._next_piece = self._delay()
 
+    @mutator
     def attack(self, *args, **kwargs):
         pieces = self._board.attack(*args, **kwargs)
         self.score += pieces * 100
@@ -370,15 +373,18 @@ class Marathon(Game):
             self._update_quota()
             self.level += 1
 
-    def update(self):
-        if self._next_piece <= 0:
-            try:
-                self._board.add()
-            except TooManyPieces:
-                raise GameOver
-            self._next_piece = self._delay()
-        else:
-            self._next_piece -= 1
+    @mutator
+    def _add_piece(self):
+        try:
+            self._board.add()
+        except TooManyPieces:
+            raise GameOver
+
+    def synchronize(self, duration):
+        self._next_piece -= duration
+        while self._next_piece <= 0:
+            self._add_piece()
+            self._next_piece += self._delay()
 
     def _delay(self):
         return self._sync - self.level * self._acceleration
@@ -396,15 +402,16 @@ class Timed(Game):
         self._sync = sync
         self._next_tick = self._sync
 
+    @mutator
     def attack(self, *args, **kwargs):
         pieces = self._board.attack(*args, **kwargs)
         self.score += pieces * 100
 
-    def update(self):
-        if self._next_tick <= 0:
-            self._next_tick = self._sync
+    @mutator
+    def synchronize(self, duration):
+        self._next_piece -= duration
+        while self._next_tick <= 0:
             self.time_left -= 1
             if self.time_left <= 0:
                 raise GameOver
-        else:
-            self._next_tick -= 1
+            self._next_tick += self._sync

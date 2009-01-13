@@ -6,7 +6,7 @@ class Game(object):
     def __init__(self, model):
         self.controllers = [Keyboard(model)]
 
-    def update(self):
+    def synchronize(self, duration):
         for controller in self.controllers:
             controller.update()
 
